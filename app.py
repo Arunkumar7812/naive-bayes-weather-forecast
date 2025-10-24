@@ -48,6 +48,7 @@ if st.button("🔍 Predict"):
             'Location_Charlotte': 1 if location == "Charlotte" else 0,
             'Location_Chicago': 1 if location == "Chicago" else 0,
             'Location_Columbus': 1 if location == "Columbus" else 0
+            'Location_New York': 1 if location == "New York" else 0
         }
 
         input_df = pd.DataFrame([input_data])
