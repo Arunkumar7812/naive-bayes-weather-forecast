@@ -19,7 +19,7 @@ if os.path.exists(MODEL_FILE):
         model = pickle.load(file)
     st.success("✅ Model loaded successfully.")
 else:
-    st.error("❌ Model file not found! Please upload `weather_nb_model.pkl`.")
+    st.error("❌ Model file not found! Please upload `naive_bayes_weather_model.pkl`.")
     st.stop()
 
 # ----------------------------------------------------
@@ -32,7 +32,7 @@ temperature = st.number_input("Temperature (°C)", min_value=-10, max_value=50, 
 wind_speed = st.number_input("Wind Speed (km/h)", min_value=0, max_value=100, value=12)
 pressure = st.number_input("Pressure (hPa)", min_value=900, max_value=1100, value=1010)
 cloud_cover = st.number_input("Cloud Cover (%)", min_value=0, max_value=100, value=60)
-location = st.selectbox("🌍 Location", ["Charlotte", "Chicago", "Columbus"])
+precipitation = st.number_input("Precipitation (mm)", min_value=0.0, max_value=500.0, value=5.0, step=0.1)
 
 # ----------------------------------------------------
 # Prepare input data
@@ -45,10 +45,7 @@ if st.button("🔍 Predict"):
             'Wind Speed': wind_speed,
             'Pressure': pressure,
             'Cloud Cover': cloud_cover,
-            'Location_Charlotte': 1 if location == "Charlotte" else 0,
-            'Location_Chicago': 1 if location == "Chicago" else 0,
-            'Location_Columbus': 1 if location == "Columbus" else 0,
-            'Location_New York': 1 if location == "New York" else 0
+            'Precipitation': precipitation
         }
 
         input_df = pd.DataFrame([input_data])
