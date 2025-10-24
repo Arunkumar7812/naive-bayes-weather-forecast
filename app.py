@@ -11,7 +11,7 @@ st.write("Predict whether it will **rain tomorrow** based on weather conditions.
 # ----------------------------------------------------
 # Load model
 # ----------------------------------------------------
-MODEL_FILE = "weather_nb_model.pkl"
+MODEL_FILE = "naive_bayes_weather_model.pkl"
 
 model = None
 if os.path.exists(MODEL_FILE):
