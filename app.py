@@ -1,60 +1,81 @@
 import streamlit as st
+import pickle # Changed from joblib to pickle
 import pandas as pd
-import joblib
 import numpy as np
 
-# -----------------------------
-# Load trained model
-# -----------------------------
-model = joblib.load("weather_nb_model.joblib")  # replace with your model file
-st.success("✅ Model loaded successfully.")
+# 1. Configuration and Model Loading
+MODEL_FILENAME = "naive_bayes_weather_model.pkl" # Changed filename
+try:
+    # Load the model using pickle
+    with open(MODEL_FILENAME, 'rb') as file:
+        model = pickle.load(file)
+except FileNotFoundError:
+    st.error(f"Error: The model file '{MODEL_FILENAME}' was not found. Please ensure you have run your training script to generate this file in the same directory as app.py.")
+    st.stop()
 
-st.title("🌦️ Weather Forecast (Naïve Bayes)")
-
-# -----------------------------
-# User Inputs
-# -----------------------------
-humidity = st.number_input("Humidity (%)", min_value=0, max_value=100, value=75)
-temperature = st.number_input("Temperature (°C)", min_value=-50, max_value=60, value=28)
-wind_speed = st.number_input("Wind Speed (km/h)", min_value=0, max_value=200, value=12)
-pressure = st.number_input("Pressure (hPa)", min_value=900, max_value=1100, value=1010)
-cloud_cover = st.number_input("Cloud Cover (%)", min_value=0, max_value=100, value=50)
-location = st.selectbox("Location", ["Charlotte", "Chicago", "Columbus"])
-
-# -----------------------------
-# Prepare input dataframe
-# -----------------------------
-# List of all feature names used during training
-feature_names = [
-    "Humidity", "Temperature", "Wind Speed", "Pressure", "Cloud Cover",
-    "Location_Charlotte", "Location_Chicago", "Location_Columbus"
+# List of all locations used for one-hot encoding during training
+# Based on the data structure (20 unique locations)
+LOCATIONS = [
+    'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix',
+    'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose',
+    'Austin', 'Jacksonville', 'Fort Worth', 'Columbus', 'Charlotte',
+    'San Francisco', 'Indianapolis', 'Seattle', 'Denver', 'Washington D.C.'
 ]
 
-# Initialize all features with 0
-input_data = dict.fromkeys(feature_names, 0)
+st.title("⛈️ Naive Bayes Weather Forecast")
+st.markdown("Enter the weather conditions to predict if it will Rain Tomorrow (1) or not (0).")
 
-# Fill numerical features
-input_data["Humidity"] = humidity
-input_data["Temperature"] = temperature
-input_data["Wind Speed"] = wind_speed
-input_data["Pressure"] = pressure
-input_data["Cloud Cover"] = cloud_cover
+# 2. Input Fields for Features
+st.subheader("Weather Parameters")
+col1, col2, col3 = st.columns(3)
 
-# Fill location one-hot encoding
-location_col = f"Location_{location}"
-input_data[location_col] = 1
+with col1:
+    temperature = st.slider("Temperature (°F)", min_value=30.0, max_value=100.0, value=70.0, step=0.1)
+    humidity = st.slider("Humidity (%)", min_value=20.0, max_value=100.0, value=65.0, step=0.1)
+    wind_speed = st.slider("Wind Speed (mph)", min_value=0.0, max_value=30.0, value=15.0, step=0.1)
 
-# Convert to dataframe
-input_df = pd.DataFrame([input_data])
+with col2:
+    precipitation = st.slider("Precipitation (in)", min_value=0.0, max_value=4.0, value=0.5, step=0.01)
+    cloud_cover = st.slider("Cloud Cover (%)", min_value=10.0, max_value=100.0, value=50.0, step=0.1)
+    pressure = st.slider("Pressure (hPa)", min_value=970.0, max_value=1040.0, value=1010.0, step=0.1)
 
-# -----------------------------
-# Make Prediction
-# -----------------------------
-if st.button("Predict Rain"):
-    try:
-        prediction = model.predict(input_df)[0]
-        probability = model.predict_proba(input_df)[0][1]  # probability of rain
-        st.write(f"🌧️ Prediction: {'Rain' if prediction == 1 else 'No Rain'}")
-        st.write(f"💧 Probability of Rain: {probability*100:.2f}%")
-    except Exception as e:
-        st.error(f"⚠️ Prediction failed: {e}")
+with col3:
+    location = st.selectbox("Location", options=LOCATIONS, index=LOCATIONS.index('Seattle'))
+
+# 3. Prediction Logic
+if st.button("Predict Rain Tomorrow"):
+    # Create a dictionary for the input features
+    input_data = {
+        'Temperature': temperature,
+        'Humidity': humidity,
+        'Wind Speed': wind_speed,
+        'Precipitation': precipitation,
+        'Cloud Cover': cloud_cover,
+        'Pressure': pressure,
+    }
+    
+    # Initialize all one-hot encoded location columns to 0
+    for loc in LOCATIONS:
+        input_data[f'Location_{loc}'] = 0
+    
+    # Set the selected location's one-hot encoded column to 1
+    input_data[f'Location_{location}'] = 1
+
+    # Convert the input dictionary to a DataFrame
+    # Note: Column order must match the training data!
+    feature_order = [
+        'Temperature', 'Humidity', 'Wind Speed', 'Precipitation', 
+        'Cloud Cover', 'Pressure'
+    ] + [f'Location_{loc}' for loc in LOCATIONS]
+    
+    input_df = pd.DataFrame([input_data], columns=feature_order)
+
+    # Make the prediction
+    prediction = model.predict(input_df)[0]
+    
+    # Display the result
+    st.subheader("Prediction Result")
+    if prediction == 1:
+        st.success("The model predicts: **Rain Tomorrow (1)** 🌧️")
+    else:
+        st.info("The model predicts: **No Rain Tomorrow (0)** ☀️")
